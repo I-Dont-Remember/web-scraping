@@ -23,15 +23,16 @@ class Person(object):
 
 
     
-def get_pages_researchers(soup, selector):
+def get_pages_researchers(rows):
     researchers = []
-    rows = soup.select(selector)
     for person in rows:
         td_list = person.find_all('td')
         researchers.append(Person(get_last_name(td_list[0]),
                            get_first_name(td_list[1]),
                            get_dept(td_list[2]),
                            get_email(td_list[3])))
+    
+    print('----> Found %d researchers on this page...' % (len(researchers)))
     return researchers
 
 
@@ -56,26 +57,35 @@ def get_dept(td):
 
 def main():
     researchers = []
-    page_num = "5000"
+    page_num = 0
     web_link = 'http://discoveryportal.org/faculty.aspx?&page='
     researchers_selector = 'tr.researcherList'
     
-    print('Preparing to scrape "%s"...' % web_link) 
-    response = requests.get(web_link + page_num)
+    print('--> Preparing to scrape "%s"...' % web_link) 
+    response = requests.get(web_link + str(page_num))
     soup = bs4.BeautifulSoup(response.text, 'html.parser')
-    print(soup)
-    return 0
+    rows = soup.select(researchers_selector)
+    
     # Can't just check return code cuz idiot site returns an empty list but
     # functional page even if page is out of the "true" range
-    while response:
-        print('-->Scraping page %s...' % page_num)
-        soup = bs4.BeautifulSoup(response.text, 'html.parser')
-        researchers += get_pages_researchers(soup, researchers_selector)
+    while rows:
+        print('--> Scraping page %s...' % page_num)
+        researchers += get_pages_researchers(rows)
+        
+        if page_num == 3:
+           break
 
-    print('-->Page returned bad status...')
+        # handle next page 
+        page_num += 1
+        response = requests.get(web_link + str(page_num))
+        soup = bs4.BeautifulSoup(response.text, 'html.parser')
+        rows = soup.select(researchers_selector)
+
+    print('--> Page returned empty list...')
     for r in researchers:
         r.displayPerson()
 
+    print('--> Found %d total researchers on %d pages' % (len(researchers), page_num + 1)) 
     print('...done')
 
 
