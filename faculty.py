@@ -81,7 +81,8 @@ def main():
         soup = bs4.BeautifulSoup(response.text, 'html.parser')
         rows = soup.select(researchers_selector)
 
-    print('--> Page returned empty list...')
+    print('--> Page %s returned empty list...' % page_num)
+    researchers.sort(key = lambda x: x.dept)
     for r in researchers:
         r.displayPerson()
 
