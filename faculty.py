@@ -2,6 +2,7 @@
 import bs4
 import requests
 import csv
+import time
 
 class Person(object):
 
@@ -81,6 +82,7 @@ def main():
     web_link = 'http://discoveryportal.org/faculty.aspx?&page='
     researchers_selector = 'tr.researcherList'
 
+    start = time.time()
     print('--> Preparing to scrape "%s"...' % web_link) 
     response = requests.get(web_link + str(page_num))
     soup = bs4.BeautifulSoup(response.text, 'html.parser')
@@ -109,7 +111,7 @@ def main():
 
     print('--> Writing to %s' % file_name)
     write_to_csv(researchers, file_name)
-    print('...done')
+    print('...done in %d seconds' % (time.time() - start))
 
 
 if __name__ == '__main__':
