@@ -26,14 +26,16 @@ class Person(object):
     def getCSVformat(self):
         return (self.dept, self.name, self.email)
 
-def get_pages_researchers(rows):
+def get_pages_researchers(rows, ignored_depts):
     researchers = []
     for person in rows:
         td_list = person.find_all('td')
-        researchers.append(Person(get_last_name(td_list[0]),
-                           get_first_name(td_list[1]),
-                           get_dept(td_list[2]),
-                           get_email(td_list[3])))
+        dept = get_dept(td_list[2])
+        if dept not in ignored_depts:
+            researchers.append(Person(get_last_name(td_list[0]),
+                               get_first_name(td_list[1]),
+                               dept,
+                               get_email(td_list[3])))
 
     print('----> Found %d researchers on this page...' % (len(researchers)))
     return researchers
@@ -71,19 +73,36 @@ def write_to_csv(person_list, file_name):
             writer = csv.writer(fp, delimiter=',')
             writer.writerows(data)
     except Exception as e:
-        # Need to find out what exceptions to check for 
+        # Need to find out what exceptions to check for
+        print('Exception thrown during csv writing')
         print(e)
+        raise SystemExit
 
 
 def main():
     researchers = []
+    ignored_depts = []
     page_num = 0
     file_name = 'researchers.csv'
+    ignore_file = 'ignored_depts.txt'
     web_link = 'http://discoveryportal.org/faculty.aspx?&page='
     researchers_selector = 'tr.researcherList'
 
     start = time.time()
-    print('--> Preparing to scrape "%s"...' % web_link) 
+    print('--> Getting ignored list from %s' %  ignore_file)
+    try:
+        with open(ignore_file, 'r') as fp:
+            lines = fp.readlines()
+    except Exception as e:
+        print('exception: %s' % e)
+        raise SystemExit
+
+    for line in lines:
+        ignored_depts.append(line.rstrip())
+    print('--> Fetched %s as ignored list in %d seconds...' %(ignore_file, time.time() - start))
+
+    start = time.time()
+    print('--> Preparing to scrape "%s"...' % web_link)
     response = requests.get(web_link + str(page_num))
     soup = bs4.BeautifulSoup(response.text, 'html.parser')
     rows = soup.select(researchers_selector)
@@ -92,12 +111,9 @@ def main():
     # functional page even if page is out of the "true" range
     while rows:
         print('--> Scraping page %s...' % page_num)
-        researchers += get_pages_researchers(rows)
+        researchers += get_pages_researchers(rows, ignored_depts)
 
-        if page_num == 3:
-            break
-
-        # handle next page 
+        # handle next page
         page_num += 1
         response = requests.get(web_link + str(page_num))
         soup = bs4.BeautifulSoup(response.text, 'html.parser')
@@ -105,15 +121,14 @@ def main():
 
     print('--> Page %s returned empty list...' % page_num)
     researchers.sort(key = lambda x: x.dept)
-    for r in researchers:
-        r.displayPerson()
-    print('--> Found %d total researchers on %d pages' % (len(researchers), page_num + 1)) 
+    print('--> Found %d total researchers on %d pages...' % (len(researchers), page_num + 1))
+    print('--> Scraping done in %d seconds...' % (time.time() - start))
 
-    print('--> Writing to %s' % file_name)
+    start = time.time()
+    print('--> Writing to %s...' % file_name)
     write_to_csv(researchers, file_name)
-    print('...done in %d seconds' % (time.time() - start))
+    print('...Writing done in %d seconds' % (time.time() - start))
 
 
 if __name__ == '__main__':
     main()
-
