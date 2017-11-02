@@ -7,6 +7,7 @@ error404_class = '.error404'
 
 def get_soup_from_link(link):
     response = requests.get(link)
+    response.raise_for_status()
     return bs4.BeautifulSoup(response.text, 'html.parser')
 
 
@@ -51,14 +52,20 @@ def main():
 
     soup = get_soup_from_link(base_link + str(page_num))
 
-    while not has_error404_class(soup):
-        # valid page
+    # while not has_error404_class(soup):
+    #     # valid page
+    try:
+        while True:
+            bookmark_links += get_bookmark_links(soup)
+            print('Grabbed links from page %d...' % page_num)
 
-        bookmark_links += get_bookmark_links(soup)
-        print('Grabbed links from page %d...' % page_num)
-
-        page_num += 1
-        soup = get_soup_from_link(base_link + str(page_num))
+            page_num += 1
+            soup = get_soup_from_link(base_link + str(page_num))
+    except requests.exceptions.HTTPError as err:
+        print('404 at page %s%d...' % (base_link, page_num))
+        pass
+    except requests.exceptions.ConnectionError:
+        print('Problem connecting to page %s%d, exiting.' % (base_link, page_num))
 
     print('Scraped %d pages...' % (page_num - 1))
     print('Writing list of %d bookmark links to %s...' % (len(bookmark_links), file_name))
