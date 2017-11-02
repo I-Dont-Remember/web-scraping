@@ -25,24 +25,48 @@ def get_bookmark_links(soup):
     bookmarks = []
     headers = soup.findAll('header', {'class': 'entry-header'})
     for header in headers:
-        print(header.a['href'])
-        bookmarks.append(header.a['href'])
+        link = header.a['href']
+        print('---> found %s' % link)
+        bookmarks.append(link)
     return bookmarks
 
 def send_list_to_file(a_list, file_name):
-    print('%d bookmark links found..' % len(a_list))
+    print('%d bookmark links found...' % len(a_list))
+    print(a_list)
 
 
 def get_pdf_links(bookmarks):
-    print('for every bookmark print pdf')
+    pdfs = []
+    print('Getting pdf links from bookmarks...')
+    for link in bookmarks:
+        print('---> %s...' % link, end='')
+        pdf_link = get_pdf_from_bookmark(link)
+        if pdf_link:
+            pdfs.append(pdf_link)
+            print('ok')
+    return pdfs
 
 
-def get_pdf_from_bookmark():
-    print('get pdf')
+def get_pdf_from_bookmark(link):
+    try:
+        response = requests.get(link)
+        response.raise_for_status()
+        soup = bs4.BeautifulSoup(response.text, 'html.parser')
+    except requests.exceptions.ConnectionError:
+        print('Problem connecting to page %s...' % link)
+        return ''
+
+    try:
+        pdf_link = soup.find('span', class_='download-links').a['href']
+    except KeyError as e:
+        print('%s had no pdf link...' % link)
+        return ''
+
+    return pdf_link
 
 
 def main():
-    page_num = 735
+    page_num = 734
     bookmark_links = []
     base_link = 'http://www.allitebooks.com/page/'
     file_name = 'bookmarks_file.txt'
@@ -52,8 +76,6 @@ def main():
 
     soup = get_soup_from_link(base_link + str(page_num))
 
-    # while not has_error404_class(soup):
-    #     # valid page
     try:
         while True:
             bookmark_links += get_bookmark_links(soup)
@@ -67,9 +89,12 @@ def main():
     except requests.exceptions.ConnectionError:
         print('Problem connecting to page %s%d, exiting.' % (base_link, page_num))
 
-    print('Scraped %d pages...' % (page_num - 1))
-    print('Writing list of %d bookmark links to %s...' % (len(bookmark_links), file_name))
-    send_list_to_file(bookmark_links, file_name)
+    print('Scraped %d pages for bookmarks...' % (page_num - 1))
+
+    pdf_links = get_pdf_links(bookmark_links)
+
+    print('Writing list of %d pdfs to %s...' % (len(pdf_links), file_name))
+    send_list_to_file(pdf_links, file_name)
 
     end = time.time() - start
     print('Finished in %ds.' % end)
