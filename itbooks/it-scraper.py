@@ -31,8 +31,15 @@ def get_bookmark_links(soup):
     return bookmarks
 
 def send_list_to_file(a_list, file_name):
-    print('%d bookmark links found...' % len(a_list))
-    print(a_list)
+    try:
+        with open(file_name, 'w') as f:
+            for item in a_list:
+                f.write('%s\n' % item)
+    except IOError:
+        print('Issue writing to %s, exiting' % file_name)
+        raise SystemExit
+
+    print('Finished writing to %s' % file_name)
 
 
 def get_pdf_links(bookmarks):
@@ -58,7 +65,7 @@ def get_pdf_from_bookmark(link):
 
     try:
         pdf_link = soup.find('span', class_='download-links').a['href']
-    except KeyError as e:
+    except (KeyError, AttributeError) as e:
         print('%s had no pdf link...' % link)
         return ''
 
@@ -66,10 +73,10 @@ def get_pdf_from_bookmark(link):
 
 
 def main():
-    page_num = 734
+    page_num = 1
     bookmark_links = []
     base_link = 'http://www.allitebooks.com/page/'
-    file_name = 'bookmarks_file.txt'
+    file_name = 'itebooks_pdfs_links.txt'
     # Run until class 'error404'
     start = time.time()
     print('Preparing to scrape "%s"...' % base_link)
