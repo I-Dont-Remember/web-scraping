@@ -52,3 +52,19 @@ Writing list of 7350 pdfs to itebooks_pdfs_links.txt...
 Finished writing to itebooks_pdfs_links.txt
 Finished in 824s with 14 threads.
 `
+
+
+### Now for the fun times, actual downloads of the pdfs...
+  - Acquired 7350 pdf links in 0 s.
+Culled to 20 pdf links
+100% [........................................................................] 26913695 / 26913695
+Finished download in 23 s
+
+  - Acquired 7350 pdf links in 0 s.
+Culled to 20 pdf links
+100% [........................................................................] 20545253 / 20545253
+Finished download in 23 s
+
+  - Culled to 20 pdf links
+100% [........................................................................] 15984588 / 15984588
+Finished download in 30 s
