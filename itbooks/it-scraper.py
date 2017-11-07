@@ -2,6 +2,8 @@
 import requests
 import bs4
 import time
+import sys
+from multiprocessing.dummy import Pool as ThreadPool
 
 error404_class = '.error404'
 
@@ -19,16 +21,24 @@ def has_error404_class(soup):
         return False
 
 
-def get_bookmark_links(soup):
-    # list = soup.findAll('a', {'rel': 'bookmark'})
-    # still need to get rid of child elements
+def scrape_for_bookmarks(url):
     bookmarks = []
+    soup = get_soup_from_link(url)
     headers = soup.findAll('header', {'class': 'entry-header'})
     for header in headers:
-        link = header.a['href']
-        print('---> found %s' % link)
-        bookmarks.append(link)
+        if header.a:
+            link = header.a['href']
+            print('---> found %s' % link)
+            bookmarks.append(link)
     return bookmarks
+
+
+# Map concatenates into a list of lists, flatten after return
+def get_bookmark_links(page_range, base_link, pool):
+    actual_links = [base_link + str(num) for num in page_range]
+    bookmarks = pool.map(scrape_for_bookmarks, actual_links)
+    return bookmarks
+
 
 def send_list_to_file(a_list, file_name):
     try:
@@ -42,19 +52,15 @@ def send_list_to_file(a_list, file_name):
     print('Finished writing to %s' % file_name)
 
 
-def get_pdf_links(bookmarks):
+def get_pdf_links(bookmarks, pool):
     pdfs = []
     print('Getting pdf links from bookmarks...')
-    for link in bookmarks:
-        print('---> %s...' % link, end='')
-        pdf_link = get_pdf_from_bookmark(link)
-        if pdf_link:
-            pdfs.append(pdf_link)
-            print('ok')
+    pdfs = pool.map(get_pdf_from_bookmark, bookmarks)
     return pdfs
 
 
 def get_pdf_from_bookmark(link):
+    print('---> %s...' % link, end='')
     try:
         response = requests.get(link)
         response.raise_for_status()
@@ -72,39 +78,46 @@ def get_pdf_from_bookmark(link):
     return pdf_link
 
 
+def flatten(outer_list):
+    flatlist = []
+    for l in outer_list:
+        if type(l) == list:
+            for e in l:
+                flatlist.append(e)
+        else:
+            flatlist.append(l)
+    return flatlist
+
+
 def main():
-    page_num = 1
-    bookmark_links = []
+    last_page = 735
+    page_range = list(range(1,last_page + 1))
+    pool_size = int(sys.argv[1])
     base_link = 'http://www.allitebooks.com/page/'
     file_name = 'itebooks_pdfs_links.txt'
+    pool = ThreadPool(pool_size)
     # Run until class 'error404'
     start = time.time()
     print('Preparing to scrape "%s"...' % base_link)
 
-    soup = get_soup_from_link(base_link + str(page_num))
-
     try:
-        while True:
-            bookmark_links += get_bookmark_links(soup)
-            print('Grabbed links from page %d...' % page_num)
-
-            page_num += 1
-            soup = get_soup_from_link(base_link + str(page_num))
-    except requests.exceptions.HTTPError as err:
-        print('404 at page %s%d...' % (base_link, page_num))
-        pass
+        bookmark_links = flatten(get_bookmark_links(page_range, base_link, pool))
     except requests.exceptions.ConnectionError:
         print('Problem connecting to page %s%d, exiting.' % (base_link, page_num))
+        raise SystemExit
+    print('Scraped %d pages for bookmarks...' % (last_page))
 
-    print('Scraped %d pages for bookmarks...' % (page_num - 1))
-
-    pdf_links = get_pdf_links(bookmark_links)
+    try:
+        pdf_links = get_pdf_links(bookmark_links, pool)
+    except requests.exceptions.ConnectionError:
+        print('Problem connecting to pdf_links, exiting.')
+        raise SystemExit
 
     print('Writing list of %d pdfs to %s...' % (len(pdf_links), file_name))
     send_list_to_file(pdf_links, file_name)
 
     end = time.time() - start
-    print('Finished in %ds.' % end)
+    print('Finished in %ds with %d threads.' % (end, pool_size))
     return 0
 
 
