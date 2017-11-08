@@ -1,9 +1,8 @@
-# UW faculty web scraper
+# web-scraping
+Repository to hold all web scraping projects rather than flooding my GitHub with excess repos
 
-Web Scraper grabs names and emails and department from the web database and 
-places them into a csv file.  It uses a blacklist file to ignore chosen
-departments.
+## Faculty
+- University faculty database scraper
 
-
-* Couldn't find a robots.txt for this website, so AFAIK this scraper should
-be fine.
+## itbooks
+- Scraper and downloader for free ebooks, now with multiprocessing!
