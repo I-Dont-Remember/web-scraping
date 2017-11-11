@@ -68,3 +68,12 @@ Finished download in 23 s
   - Culled to 20 pdf links
 100% [........................................................................] 15984588 / 15984588
 Finished download in 30 s
+
+
+### Final download run
+  - 
+Acquired 7350 pdf links in 0 s.
+Culled to 7350 pdf links
+100% [..........................................................................] 7542493 / 7542493
+Finished download in 6682 s
+
