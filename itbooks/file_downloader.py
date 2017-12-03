@@ -17,7 +17,8 @@ def main():
     num_threads = int(sys.argv[1])
     file_name = sys.argv[2]
 
-    if sys.argv[3]:
+    num_pdfs = 0
+    if len(sys.argv) == 4:
         num_pdfs = int(sys.argv[3])
 
     start = time.time()
@@ -34,7 +35,7 @@ def main():
     total = time.time() - start
     print('Acquired %d pdf links in %d s.' % (len(pdf_links), total))
 
-    if sys.argv[3]:
+    if num_pdfs != 0:
         print('Culled to %d pdf links' % num_pdfs)
         pdf_links = pdf_links[:num_pdfs]
     start = time.time()
