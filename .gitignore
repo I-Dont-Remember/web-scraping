@@ -1,4 +1,5 @@
 venv
+itbooks/pdfs/*
 *.pyc
 *.csv
 notes
